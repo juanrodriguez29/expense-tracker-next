@@ -1,78 +1,243 @@
-import Image from "next/image";
-import { Geist, Geist_Mono } from "next/font/google";
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
+import { supabase } from '../lib/supabase';
+import { Balance } from '../components/Balance';
+import { ExpenseForm } from '../components/ExpenseForm';
+import { ExpenseList } from '../components/ExpenseList';
+import { EditExpenseModal } from '../components/EditExpenseModal';
+import { CategoryTotals } from '../components/CategoryTotals';
+import { CategoryPieChart } from '../components/CategoryPieChart';
+import { FilterBar } from '../components/FilterBar';
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const CATEGORIES = [
+  { id: "food", label: "Food" },
+  { id: "transport", label: "Transport" },
+  { id: "bills", label: "Bills" },
+  { id: "shopping", label: "Shopping" },
+  { id: "entertainment", label: "Entertainment" },
+  { id: "health", label: "Health" },
+  { id: "savings", label: "Savings" },
+  { id: "other", label: "Other" },
+];
+
+
+const CATEGORY_MAP = Object.fromEntries(
+  CATEGORIES.map(cat => [cat.id, cat.label])
+);
 
 export default function Home() {
+
+  const route = useRouter();
+  const [user, setUser] = useState(null);
+  const [expenses, setExpenses] = useState([]);
+  const [editingExpense, setEditingExpense] = useState(null);
+  const [activeCategory, setActiveCategory] = useState(null);
+  const [selectedMonth, setSelectedMonth] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [token, setToken] = useState(null);
+
+  useEffect(() => {
+    const checkUser = async () => {
+      console.log('checkUser running')
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        console.log('session:', session)
+        console.log('session error:', error)
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+        setLoading(false);
+        if (currentUser) {
+        } else {
+          route.push('/login');
+        }
+        setToken(session?.access_token);
+      } catch (err) {
+        console.log('checkUser error:', err.message)
+        setLoading(false);
+      }
+    }
+    checkUser();
+  }, [])
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    route.push('/login');
+  };
+
+  useEffect(() => {
+    if (!user) return
+    const loadExpenses = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const currentToken = session?.access_token
+
+        if (!currentToken) return // no token, don't fetch
+
+        const response = await fetch('/api/expenses', {
+          headers: {
+            'Authorization': `Bearer ${currentToken}`
+          }
+        });
+
+        if (!response.ok) throw new Error("Server error");
+        const data = await response.json();
+        setExpenses(data);
+      } catch (err) {
+        setError("Could not connect to server. Is it running?");
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadExpenses();
+  }, [user]);
+
+  const totalsMap = expenses.reduce((acc, expense) => {
+    if (!acc[expense.category]) acc[expense.category] = 0;
+    acc[expense.category] += Number(expense.amount);
+    return acc;
+  }, {});
+
+  const categoryTotals = CATEGORIES.map((cat) => ({
+    ...cat,
+    total: totalsMap[cat.id] || 0,
+  })).filter((cat) => cat.total > 0);
+
+  const chartData = categoryTotals.map((cat) => ({
+    name: cat.label,
+    value: cat.total
+  }));
+
+  const sortedExpenses = expenses.toSorted((a, b) => new Date(b.date) - new Date(a.date));
+  const uniqueMonths = [...new Set(sortedExpenses.map(exp => exp.date?.slice(0, 7)))];
+
+  const monthFilteredExpenses = selectedMonth
+    ? sortedExpenses.filter(exp => exp.date.slice(0, 7) === selectedMonth)
+    : sortedExpenses;
+
+  const expensesToShow = activeCategory
+    ? monthFilteredExpenses.filter(exp => exp.category === activeCategory)
+    : monthFilteredExpenses;
+
+  const addExpense = async (expense) => {
+    const { data: { session } } = await supabase.auth.getSession()
+    const response = await fetch('/api/expenses', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session?.access_token}`
+      },
+      body: JSON.stringify(expense)
+    })
+    const data = await response.json()
+    setExpenses(prev => [...prev, data])
+  }
+
+  const deleteExpense = async (id) => {
+    const { data: { session } } = await supabase.auth.getSession()
+    await fetch(`/api/expenses/${id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${session?.access_token}` }
+    })
+    setExpenses(prev => prev.filter(exp => exp.id !== id))
+  }
+
+  const handleSaveEdit = async (updatedExpense) => {
+    const { data: { session } } = await supabase.auth.getSession()
+    await fetch(`/api/expenses/${updatedExpense.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session?.access_token}`
+      },
+      body: JSON.stringify(updatedExpense)
+    })
+    setExpenses(prev =>
+      prev.map(exp => exp.id === updatedExpense.id ? updatedExpense : exp)
+    )
+    setEditingExpense(null)
+  }
+
+  const clearFilters = () => { setActiveCategory(null); setSelectedMonth(null); };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <p className="text-slate-400 text-sm">Loading expenses...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <p className="text-red-400 text-sm">{error}</p>
+      </div>
+    );
+  }
+
+
   return (
-    <div
-      className={`${geistSans.className} ${geistMono.className} flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black`}
-    >
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the index.js file.
+    <div className="min-h-screen bg-slate-50 px-4 py-8">
+      <div className="max-w-5xl mx-auto">
+        <div className="relative flex items-center justify-center border-b-2 border-indigo-500 pb-3 mb-6">
+          <h1 className="text-3xl font-semibold text-slate-800">
+            Expense Tracker
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+          <button
+            onClick={handleLogout}
+            className="absolute right-0 text-sm text-slate-500 hover:text-slate-700 transition-colors">
+            Log out
+          </button>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 md:items-start">
+          <div className="flex flex-col gap-4 bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+            <Balance expenses={expenses} />
+            <ExpenseForm
+              onAddExpense={addExpense}
+              categories={CATEGORIES}
+              onClearFilter={() => setActiveCategory(null)}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs/pages/getting-started?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+          </div>
+
+          <div className="flex flex-col gap-4 bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+            <CategoryPieChart data={chartData} />
+            <CategoryTotals categoryTotals={categoryTotals} />
+          </div>
         </div>
-      </main>
+
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+          <FilterBar
+            months={uniqueMonths}
+            categories={categoryTotals}
+            selectedMonth={selectedMonth}
+            selectedCategory={activeCategory}
+            onChangeMonth={setSelectedMonth}
+            onChangeCategory={setActiveCategory}
+            onClearFilters={clearFilters}
+          />
+          <ExpenseList
+            expenses={expenses}
+            onDelete={deleteExpense}
+            onEdit={setEditingExpense}
+            categoryMap={CATEGORY_MAP}
+            expensesToShow={expensesToShow}
+            onCategoryClick={setActiveCategory}
+            activeCategory={activeCategory}
+          />
+        </div>
+      </div>
+
+      {editingExpense && (
+        <EditExpenseModal
+          expense={editingExpense}
+          onSave={handleSaveEdit}
+          onCancel={() => setEditingExpense(null)}
+          categories={CATEGORIES}
+        />
+      )}
     </div>
-  );
-}
+  )
+};
