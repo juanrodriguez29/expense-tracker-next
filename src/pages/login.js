@@ -8,7 +8,7 @@ export default function Login() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  
+
 
   const handleLogin = async (email, password) => {
     if (!email || !password) {
@@ -33,6 +33,9 @@ export default function Login() {
   return (
 
     <section id="login" className="py-0 px-6 bg-slate-50 flex flex-col items-center justify-center pb-24 min-h-screen">
+      <p className="text-sm text-gray-400 mb-2">
+        Question {currentQuestion + 1} of {quiz.length}
+      </p>
       <h2 className="text-3xl font-semibold text-slate-800 mb-6 border-b-2 border-indigo-500 pb-2">Expense Tracker</h2>
       <div className="flex flex-col gap-4 w-full max-w-sm md:max-w-md bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
         <h3 className="text-2xl font-semibold text-slate-800 mb-6">Login</h3>
