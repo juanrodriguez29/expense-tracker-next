@@ -86,7 +86,7 @@ export function Chat({ setIsOpen, messages, setMessages }) {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSend()}
           placeholder="Ask about your expenses..."
-          className="flex-1 text-sm px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+          className="flex-1 text-base px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-300"
         />
         <button
           onClick={handleSend}
