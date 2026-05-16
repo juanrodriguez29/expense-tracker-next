@@ -8,6 +8,7 @@ import { EditExpenseModal } from '../components/EditExpenseModal';
 import { CategoryTotals } from '../components/CategoryTotals';
 import { CategoryPieChart } from '../components/CategoryPieChart';
 import { FilterBar } from '../components/FilterBar';
+import { Chat } from '../components/Chat';
 
 
 const CATEGORIES = [
@@ -37,7 +38,8 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [token, setToken] = useState(null);
-
+  const [isOpen, setIsOpen] = useState(false);
+  const [messages, setMessages] = useState([]);
   useEffect(() => {
     const checkUser = async () => {
       console.log('checkUser running')
@@ -208,6 +210,7 @@ export default function Home() {
           </div>
         </div>
 
+
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
           <FilterBar
             months={uniqueMonths}
@@ -229,7 +232,21 @@ export default function Home() {
           />
         </div>
       </div>
-
+      <div className="fixed bottom-4 right-6 md:right-4">
+        <button
+          className="w-14 h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-lg flex items-center justify-center text-2xl transition-colors"
+          onClick={() => setIsOpen(!isOpen)}> 💬</button>
+      </div>
+      {isOpen && (
+        <div
+          className="fixed inset-0 md:inset-auto md:bottom-16 md:right-4 bg-white md:rounded-2xl shadow-lg border border-slate-100 p-6 md:w-80 md:h-96" >
+          <Chat
+            messages={messages}
+            setMessages={setMessages}
+            setIsOpen={setIsOpen}
+          />
+        </div>
+      )}
       {editingExpense && (
         <EditExpenseModal
           expense={editingExpense}
