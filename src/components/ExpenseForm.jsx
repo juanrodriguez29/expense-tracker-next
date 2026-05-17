@@ -34,7 +34,7 @@ export function ExpenseForm({ onAddExpense, categories, onClearFilter }) {
     onClearFilter();
   };
 
-  const inputClass = "w-full h-[42px] px-3 py-2 text-base appearence-none rounded-lg border border-slate-200 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition";
+  const inputClass = "w-full h-[42px] px-3 py-2 text-base appearance-none rounded-lg border border-slate-200 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition";
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3">
