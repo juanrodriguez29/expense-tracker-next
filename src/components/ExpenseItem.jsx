@@ -5,6 +5,7 @@ export function ExpenseItem({ expense, onDelete, onEdit, categoryMap, onCategory
   const [swipeX, setSwipeX] = useState(0);
   const [startX, setStartX] = useState(0);
   const [didSwipe, setDidSwipe] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   const handleTouchStart = (e) => {
     setStartX(e.touches[0].clientX);
@@ -13,14 +14,16 @@ export function ExpenseItem({ expense, onDelete, onEdit, categoryMap, onCategory
   const handleTouchMove = (e) => {
     const distance = e.touches[0].clientX - startX;
     setSwipeX(distance);
+    setIsTransitioning(false);
   };
 
   const handleTouchEnd = (e) => {
-    if (swipeX < -60) {
-      setSwipeX(-80);
+    if (swipeX < -80) {
+      setSwipeX(-100);
       setDidSwipe(true);
     } else {
       setSwipeX(0);
+      setIsTransitioning(true);
     }
   }
 
@@ -38,7 +41,11 @@ export function ExpenseItem({ expense, onDelete, onEdit, categoryMap, onCategory
           if (!didSwipe) onEdit(expense);
         }}
         className="flex items-center justify-between gap-3 px-4 py-3 bg-white rounded-xl border border-slate-100 shadow-sm hover:shadow-md hover:border-indigo-200 cursor-pointer transition-all duration-150 group"
-        style={{ transform: `translateX(${swipeX}px)` }}
+        style={{ transform: `translateX(${swipeX}px)`,
+        transition: isTransitioning ? 'transform 0.2s ease-out' : 'none'
+      }}
+        
+
       >
         <div className="flex flex-col min-w-0 flex-1">
           <span className="font-semibold text-slate-800 truncate">{expense.title}</span>
