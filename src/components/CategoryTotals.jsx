@@ -9,7 +9,7 @@ export function CategoryTotals({ categoryTotals }) {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 md:items-start">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
       {categoryTotals.map((category) => (
         <div key={category.id} className="flex justify-between items-center px-3 py-2 bg-slate-50 rounded-lg">
           <span className="text-sm font-medium text-slate-600">{category.label}</span>

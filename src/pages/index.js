@@ -165,8 +165,45 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <p className="text-slate-400 text-sm">Loading expenses...</p>
+      <div className="min-h-screen bg-slate-50 px-4 py-8">
+        <div className="max-w-5xl mx-auto">
+          <div className="flex items-center justify-center border-b-2 border-indigo-500 pb-3 mb-6">
+            <div className="h-8 w-48 bg-slate-200 rounded-lg animate-pulse" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div className="flex flex-col gap-4 bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+              <div className="flex flex-col items-center gap-2">
+                <div className="h-3 w-20 bg-slate-200 rounded animate-pulse" />
+                <div className="h-10 w-36 bg-slate-200 rounded-lg animate-pulse" />
+              </div>
+              <div className="flex flex-col gap-3 mt-2">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="h-[42px] bg-slate-100 rounded-lg animate-pulse" />
+                ))}
+                <div className="h-10 bg-slate-200 rounded-lg animate-pulse" />
+              </div>
+            </div>
+            <div className="flex flex-col gap-4 bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+              <div className="h-[320px] bg-slate-100 rounded-xl animate-pulse" />
+              <div className="grid grid-cols-2 gap-2">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="h-9 bg-slate-100 rounded-lg animate-pulse" />
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+            <div className="flex gap-2 mb-4">
+              <div className="flex-1 h-9 bg-slate-100 rounded-lg animate-pulse" />
+              <div className="flex-1 h-9 bg-slate-100 rounded-lg animate-pulse" />
+            </div>
+            <div className="flex flex-col gap-2">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-14 bg-slate-100 rounded-xl animate-pulse" />
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -189,7 +226,7 @@ export default function Home() {
           </h1>
           <button
             onClick={handleLogout}
-            className="absolute right-0 text-sm text-slate-500 hover:text-slate-700 transition-colors">
+            className="absolute right-0 text-sm text-slate-500 hover:text-slate-700 transition-colors cursor-pointer">
             Log out
           </button>
         </div>
@@ -234,12 +271,17 @@ export default function Home() {
       </div>
       <div className="fixed bottom-4 right-6 md:right-4">
         <button
-          className="w-14 h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-lg flex items-center justify-center text-2xl transition-colors"
-          onClick={() => setIsOpen(!isOpen)}> 💬</button>
+          onClick={() => setIsOpen(!isOpen)}
+          aria-label={isOpen ? "Close expense assistant" : "Open expense assistant"}
+          className="w-14 h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-lg flex items-center justify-center transition-colors cursor-pointer"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+        </button>
       </div>
       {isOpen && (
-        <div
-          className="fixed inset-0 md:inset-auto md:bottom-16 md:right-4 bg-white md:rounded-2xl shadow-lg border border-slate-100 p-6 md:w-80 md:h-96" >
+        <div className="animate-chat-in fixed inset-0 md:inset-auto md:bottom-20 md:right-4 bg-white md:rounded-2xl shadow-lg border border-slate-100 p-6 md:w-80 md:h-96">
           <Chat
             messages={messages}
             setMessages={setMessages}

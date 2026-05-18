@@ -11,8 +11,14 @@ export function CategoryPieChart({ data }) {
     return <p className="text-center text-slate-400 text-sm py-4">No expenses yet</p>;
   }
 
+  const total = data.reduce((sum, entry) => sum + entry.value, 0);
+
   return (
-    <div style={{ width: "100%", height: 320 }}>
+    <div
+      role="img"
+      aria-label={`Spending breakdown: ${data.map(d => `${d.name} $${d.value.toFixed(2)}`).join(", ")}`}
+      style={{ width: "100%", height: 320 }}
+    >
       <ResponsiveContainer>
         <PieChart>
           <Pie
@@ -57,11 +63,19 @@ export function CategoryPieChart({ data }) {
             )}
             onMouseEnter={(_, index) => setActiveIndex(index)}
             onMouseLeave={() => setActiveIndex(null)}
+            onClick={(_, index) =>
+              setActiveIndex(prev => (prev === index ? null : index))
+            }
+            style={{ cursor: "pointer" }}
           >
             {data.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
             ))}
           </Pie>
+          <Tooltip
+            formatter={(value) => [`$${value.toFixed(2)}`, "Amount"]}
+            contentStyle={{ fontSize: "12px", borderRadius: "8px", border: "1px solid #e2e8f0" }}
+          />
           <Legend
             layout="horizontal"
             verticalAlign="bottom"
@@ -69,6 +83,27 @@ export function CategoryPieChart({ data }) {
           />
         </PieChart>
       </ResponsiveContainer>
+
+      {/* Visually hidden data table for screen readers */}
+      <table className="sr-only">
+        <caption>Spending by category</caption>
+        <thead>
+          <tr>
+            <th scope="col">Category</th>
+            <th scope="col">Amount</th>
+            <th scope="col">Share</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((entry) => (
+            <tr key={entry.name}>
+              <td>{entry.name}</td>
+              <td>${entry.value.toFixed(2)}</td>
+              <td>{((entry.value / total) * 100).toFixed(1)}%</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
