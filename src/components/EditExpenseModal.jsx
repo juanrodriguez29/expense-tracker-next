@@ -1,10 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 
+// Stable ID used to link the dialog's aria-labelledby to its heading
 const HEADING_ID = "edit-expense-heading";
 
 export function EditExpenseModal({ expense, onSave, onCancel, categories }) {
-  const [mounted, setMounted] = useState(false);
+
+  // ─── State ────────────────────────────────────────────────────────────────
+  const [mounted, setMounted] = useState(false);  // guards SSR portal rendering
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState("");
@@ -14,8 +17,12 @@ export function EditExpenseModal({ expense, onSave, onCancel, categories }) {
 
   const dialogRef = useRef(null);
 
+  // ─── Effects ──────────────────────────────────────────────────────────────
+
+  // Mark as mounted so the portal can safely target document.body
   useEffect(() => { setMounted(true); }, []);
 
+  // Populate fields whenever the expense prop changes (e.g. opening a different item)
   useEffect(() => {
     if (expense) {
       setTitle(expense.title);
@@ -25,14 +32,15 @@ export function EditExpenseModal({ expense, onSave, onCancel, categories }) {
     }
   }, [expense]);
 
-  // Escape to close
+  // Close on Escape key
   useEffect(() => {
     const handleKeyDown = (e) => { if (e.key === "Escape") onCancel(); };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onCancel]);
 
-  // Focus trap + initial focus
+  // Focus trap: keeps keyboard focus inside the dialog while it's open,
+  // and moves focus to the first input on open.
   useEffect(() => {
     if (!mounted) return;
     const dialog = dialogRef.current;
@@ -59,6 +67,9 @@ export function EditExpenseModal({ expense, onSave, onCancel, categories }) {
     return () => dialog.removeEventListener("keydown", trapTab);
   }, [mounted]);
 
+  // ─── Handlers ─────────────────────────────────────────────────────────────
+
+  // Only allows positive numbers with up to 2 decimal places
   const validateAmount = (e) => {
     const value = e.target.value;
     const regex = /^\d*(\.\d{0,2})?$/;
@@ -67,6 +78,7 @@ export function EditExpenseModal({ expense, onSave, onCancel, categories }) {
     if (value) setErrors(prev => ({ ...prev, amount: undefined }));
   };
 
+  // Validates required fields before passing the updated expense to the parent
   const handleSave = async () => {
     const newErrors = {};
     if (!title.trim()) newErrors.title = "Expense name is required.";
@@ -80,16 +92,25 @@ export function EditExpenseModal({ expense, onSave, onCancel, categories }) {
     setSaving(false);
   };
 
+  // ─── Guard ────────────────────────────────────────────────────────────────
+
+  // Prevent rendering the portal before the component is mounted on the client
   if (!mounted) return null;
+
+  // ─── Styles ───────────────────────────────────────────────────────────────
 
   const inputClass = "w-full px-3 py-2 text-base rounded-lg border bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition";
   const fieldClass = (hasError) => `${inputClass} ${hasError ? "border-red-300" : "border-slate-200"}`;
 
+  // ─── Render ───────────────────────────────────────────────────────────────
+
   return createPortal(
+    // Backdrop — clicking outside dismisses the modal
     <div
       className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
       onClick={onCancel}
     >
+      {/* Dialog panel */}
       <div
         ref={dialogRef}
         role="dialog"
@@ -100,6 +121,7 @@ export function EditExpenseModal({ expense, onSave, onCancel, categories }) {
       >
         <h2 id={HEADING_ID} className="text-lg font-bold text-slate-800 text-center">Edit Expense</h2>
 
+        {/* Title field */}
         <div className="flex flex-col gap-1">
           <label htmlFor="edit-title" className="text-sm font-medium text-slate-700">Expense name</label>
           <input
@@ -115,6 +137,7 @@ export function EditExpenseModal({ expense, onSave, onCancel, categories }) {
           {errors.title && <p className="text-xs text-red-500">{errors.title}</p>}
         </div>
 
+        {/* Amount field — text input with decimal keyboard on mobile */}
         <div className="flex flex-col gap-1">
           <label htmlFor="edit-amount" className="text-sm font-medium text-slate-700">Amount</label>
           <input
@@ -128,6 +151,7 @@ export function EditExpenseModal({ expense, onSave, onCancel, categories }) {
           {errors.amount && <p className="text-xs text-red-500">{errors.amount}</p>}
         </div>
 
+        {/* Date field */}
         <div className="flex flex-col gap-1">
           <label htmlFor="edit-date" className="text-sm font-medium text-slate-700">Date</label>
           <input
@@ -139,6 +163,7 @@ export function EditExpenseModal({ expense, onSave, onCancel, categories }) {
           />
         </div>
 
+        {/* Category field */}
         <div className="flex flex-col gap-1">
           <label htmlFor="edit-category" className="text-sm font-medium text-slate-700">Category</label>
           <select
@@ -154,6 +179,7 @@ export function EditExpenseModal({ expense, onSave, onCancel, categories }) {
           </select>
         </div>
 
+        {/* Actions */}
         <div className="flex gap-3 mt-2">
           <button
             onClick={onCancel}
