@@ -32,7 +32,7 @@ export default function Login() {
 
   /*const inputClass = "w-full px-3 py-2 text-base rounded-lg border border-slate-200 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition";*/
   const inputClass =
-    "px-3.5 py-3 rounded-[10px] bg-surface-2 border-none text-sm text-ink " +
+    "px-3.5 py-3 rounded-[10px] bg-surface-2 border-none text-base text-ink " +
     "placeholder:text-ink-softer " +
     "shadow-[inset_0_0_0_1px_rgba(15,23,42,0.06)] " +
     "focus:outline-none focus:shadow-[inset_0_0_0_2px_theme(colors.indigo.DEFAULT)] " +
