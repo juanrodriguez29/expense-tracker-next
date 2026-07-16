@@ -1,5 +1,5 @@
 
-export function CategoryTotals({ categoryTotals }) {
+export function CategoryTotals({ categoryTotals, colors }) {
 
   const formatCurrency = (value) =>
     new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD" }).format(value);
@@ -9,13 +9,15 @@ export function CategoryTotals({ categoryTotals }) {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-      {categoryTotals.map((category) => (
-        <div key={category.id} className="flex justify-between items-center px-3 py-2 bg-slate-50 rounded-lg">
-          <span className="text-sm font-medium text-slate-600">{category.label}</span>
-          <span className="text-sm font-bold text-slate-800 tabular-nums">{formatCurrency(category.total)}</span>
+    <div className="flex flex-col gap-2 text-xs w-full">
+      {categoryTotals.map((category, index) => (
+        <div key={category.id} className="flex items-center gap-2 text-[#0F172A]">
+          <div className="w-2 h-2 rounded-sm" style={{ background: colors[index % colors.length] }} />
+          <span className="flex-1 text-[#475569]">{category.label}</span>
+          <span className="font-semibold">{formatCurrency(category.total)}</span>
         </div>
       ))}
     </div>
   );
 }
+ 

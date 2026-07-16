@@ -1,10 +1,11 @@
 
 import { PieChart, Pie, Tooltip, Legend, Cell, ResponsiveContainer, Sector } from "recharts";
 import { useState } from "react";
+import { CategoryTotals } from "./CategoryTotals";
 
 const COLORS = ["#4f46e5", "#0ea5e9", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6"];
 
-export function CategoryPieChart({ data }) {
+export function CategoryPieChart({ data, categoryTotals }) {
   const [activeIndex, setActiveIndex] = useState(null);
 
   if (!data || data.length === 0) {
@@ -14,10 +15,13 @@ export function CategoryPieChart({ data }) {
   const total = data.reduce((sum, entry) => sum + entry.value, 0);
 
   return (
+    <div className="p-5 rounded-2xl bg-white border border-[#E5E7EB]">
+      <h2 className="m-0 text-[13px] font-bold text-[#0F172A]">By category</h2>
     <div
       role="img"
       aria-label={`Spending breakdown: ${data.map(d => `${d.name} $${d.value.toFixed(2)}`).join(", ")}`}
       style={{ width: "100%", height: 320 }}
+      className="flex items-center gap-[18px] mt-3.5"
     >
       <ResponsiveContainer>
         <PieChart>
@@ -76,13 +80,10 @@ export function CategoryPieChart({ data }) {
             formatter={(value) => [`$${value.toFixed(2)}`, "Amount"]}
             contentStyle={{ fontSize: "12px", borderRadius: "8px", border: "1px solid #e2e8f0" }}
           />
-          <Legend
-            layout="horizontal"
-            verticalAlign="bottom"
-            wrapperStyle={{ fontSize: "12px", paddingTop: "12px" }}
-          />
+          
         </PieChart>
       </ResponsiveContainer>
+      <CategoryTotals categoryTotals={categoryTotals} colors={COLORS} />
 
       {/* Visually hidden data table for screen readers */}
       <table className="sr-only">
@@ -104,6 +105,7 @@ export function CategoryPieChart({ data }) {
           ))}
         </tbody>
       </table>
+    </div>
     </div>
   );
 }

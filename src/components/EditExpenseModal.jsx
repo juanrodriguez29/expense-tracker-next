@@ -1,32 +1,37 @@
-import { useState, useEffect, useRef } from "react";
-import { createPortal } from "react-dom";
+import { useState, useEffect} from "react";
+import { CATEGORIES } from '../lib/categories';
 
-// Stable ID used to link the dialog's aria-labelledby to its heading
-const HEADING_ID = "edit-expense-heading";
 
-export function EditExpenseModal({ expense, onSave, onCancel, categories }) {
+function XIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+      <line x1="18" y1="6" x2="6" y2="18"/>
+      <line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+  );
+}
+
+export function EditExpenseModal({ expense, onSave, onCancel }) {
 
   // ─── State ────────────────────────────────────────────────────────────────
-  const [mounted, setMounted] = useState(false);  // guards SSR portal rendering
+  const [type, setType] = useState("");
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState("");
   const [category, setCategory] = useState("");
   const [errors, setErrors] = useState({});
-  const [saving, setSaving] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const dialogRef = useRef(null);
+  
 
   // ─── Effects ──────────────────────────────────────────────────────────────
-
-  // Mark as mounted so the portal can safely target document.body
-  useEffect(() => { setMounted(true); }, []);
 
   // Populate fields whenever the expense prop changes (e.g. opening a different item)
   useEffect(() => {
     if (expense) {
+      setType(expense.type);
       setTitle(expense.title);
-      setAmount(String(expense.amount));
+      setAmount(String(expense.amount)?.replace(/^-/, ''));  // remove leading minus if present
       setDate(expense.date);
       setCategory(expense.category);
     }
@@ -39,165 +44,222 @@ export function EditExpenseModal({ expense, onSave, onCancel, categories }) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onCancel]);
 
-  // Focus trap: keeps keyboard focus inside the dialog while it's open,
-  // and moves focus to the first input on open.
-  useEffect(() => {
-    if (!mounted) return;
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    const focusable = Array.from(
-      dialog.querySelectorAll('button, input, select, textarea, [tabindex]:not([tabindex="-1"])')
-    );
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-
-    first?.focus();
-
-    const trapTab = (e) => {
-      if (e.key !== "Tab") return;
-      if (e.shiftKey) {
-        if (document.activeElement === first) { e.preventDefault(); last.focus(); }
-      } else {
-        if (document.activeElement === last) { e.preventDefault(); first.focus(); }
-      }
-    };
-
-    dialog.addEventListener("keydown", trapTab);
-    return () => dialog.removeEventListener("keydown", trapTab);
-  }, [mounted]);
-
-  // ─── Handlers ─────────────────────────────────────────────────────────────
-
-  // Only allows positive numbers with up to 2 decimal places
-  const validateAmount = (e) => {
-    const value = e.target.value;
-    const regex = /^\d*(\.\d{0,2})?$/;
-    if (value === "" || value.startsWith("-") || !regex.test(value)) return;
-    setAmount(value);
-    if (value) setErrors(prev => ({ ...prev, amount: undefined }));
-  };
-
-  // Validates required fields before passing the updated expense to the parent
-  const handleSave = async () => {
+   const handleSave = (e) => {
+    e.preventDefault();
+    setSubmitting(true);
     const newErrors = {};
+    const value = parseFloat(amount || '0');
+    const signed = type === 'expense' ? -Math.abs(value) : Math.abs(value);
     if (!title.trim()) newErrors.title = "Expense name is required.";
     if (!amount) newErrors.amount = "Amount is required.";
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
+      setSubmitting(false);
       return;
     }
-    setSaving(true);
-    await onSave({ ...expense, title, amount: Number(amount), date, category });
-    setSaving(false);
+    onSave({ ...expense, 
+      type, 
+      title, 
+      amount: signed, 
+      date, 
+      category });
+    setErrors({});
+    setSubmitting(false);
   };
-
-  // ─── Guard ────────────────────────────────────────────────────────────────
-
-  // Prevent rendering the portal before the component is mounted on the client
-  if (!mounted) return null;
 
   // ─── Styles ───────────────────────────────────────────────────────────────
 
-  const inputClass = "w-full px-3 py-2 text-base rounded-lg border bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition";
-  const fieldClass = (hasError) => `${inputClass} ${hasError ? "border-red-300" : "border-slate-200"}`;
+  const inputBase =
+    "w-full px-3.5 py-3 rounded-[11px] bg-[#F4F6FA] border border-transparent text-[15px] text-[#0F172A] " +
+    "placeholder:text-[#94A3B8] shadow-[inset_0_0_0_1px_rgba(15,23,42,0.06)] " +
+    "focus:outline-none focus:bg-white focus:shadow-[inset_0_0_0_2px_#5B4FE9] transition-all";
+
+  const fieldClass = (hasError) => `${inputBase} ${hasError ? "border-red-300" : "border-slate-200"}`;
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
-  return createPortal(
-    // Backdrop — clicking outside dismisses the modal
-    <div
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
-      onClick={onCancel}
-    >
-      {/* Dialog panel */}
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={HEADING_ID}
-        className="bg-white rounded-2xl shadow-xl w-[90%] max-w-sm p-6 flex flex-col gap-4"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 id={HEADING_ID} className="text-lg font-bold text-slate-800 text-center">Edit Expense</h2>
-
-        {/* Title field */}
-        <div className="flex flex-col gap-1">
-          <label htmlFor="edit-title" className="text-sm font-medium text-slate-700">Expense name</label>
-          <input
-            id="edit-title"
-            type="text"
-            value={title}
-            onChange={(e) => {
-              setTitle(e.target.value);
-              if (e.target.value.trim()) setErrors(prev => ({ ...prev, title: undefined }));
-            }}
-            className={fieldClass(errors.title)}
-          />
-          {errors.title && <p className="text-xs text-red-500">{errors.title}</p>}
-        </div>
-
-        {/* Amount field — text input with decimal keyboard on mobile */}
-        <div className="flex flex-col gap-1">
-          <label htmlFor="edit-amount" className="text-sm font-medium text-slate-700">Amount</label>
-          <input
-            id="edit-amount"
-            type="text"
-            inputMode="decimal"
-            value={amount}
-            onChange={validateAmount}
-            className={fieldClass(errors.amount)}
-          />
-          {errors.amount && <p className="text-xs text-red-500">{errors.amount}</p>}
-        </div>
-
-        {/* Date field */}
-        <div className="flex flex-col gap-1">
-          <label htmlFor="edit-date" className="text-sm font-medium text-slate-700">Date</label>
-          <input
-            id="edit-date"
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className={fieldClass(false)}
-          />
-        </div>
-
-        {/* Category field */}
-        <div className="flex flex-col gap-1">
-          <label htmlFor="edit-category" className="text-sm font-medium text-slate-700">Category</label>
-          <select
-            id="edit-category"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className={`${fieldClass(false)} cursor-pointer`}
-          >
-            <option value="">Select a category</option>
-            {categories.map(cat => (
-              <option key={cat.id} value={cat.id}>{cat.label}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Actions */}
-        <div className="flex gap-3 mt-2">
-          <button
+  return (
+     <div className="fixed inset-0 z-50">
+          {/* Backdrop */}
+          <div
             onClick={onCancel}
-            disabled={saving}
-            className="flex-1 py-2 rounded-lg border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+            className="absolute inset-0 bg-[#0F172A]/40 backdrop-blur-[2px]
+                       animate-[fadeIn_200ms_ease-out]"
+          />
+    
+          {/* Drawer */}
+          <aside
+            role="dialog"
+            aria-modal="true"
+            aria-label="Edit transaction"
+            className="absolute top-0 right-0 h-full w-full max-w-[460px] bg-white flex flex-col
+                       shadow-[-24px_0_60px_rgba(15,23,42,0.18)]
+                       animate-[slideIn_360ms_cubic-bezier(0.22,1,0.36,1)]"
           >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="flex-1 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {saving ? 'Saving...' : 'Save'}
-          </button>
+            {/* Header */}
+            <div className="flex items-center justify-between px-7 py-[22px] border-b border-[#E5E7EB]">
+              <div>
+                <div className="text-[11px] font-bold tracking-[0.08em] uppercase text-[#5B4FE9] mb-0.5">
+                  Editing
+                </div>
+                <h2 className="m-0 text-[19px] font-extrabold tracking-[-0.02em] text-[#0F172A]">
+                  {expense.title}
+                </h2>
+              </div>
+              <button
+                onClick={onCancel}
+                aria-label="Close"
+                className="w-9 h-9 rounded-[10px] border-none cursor-pointer bg-[#F4F6FA] text-[#475569]
+                           text-lg flex items-center justify-center hover:bg-[#E9EDF3] hover:text-[#0F172A]
+                           transition-colors"
+              >
+              <XIcon />
+              </button>
+            </div>
+    
+            {/* Body */}
+            <form id="edit-tx-form" onSubmit={handleSave} className="flex-1 overflow-y-auto px-7 py-6 flex flex-col gap-5">
+    
+              {/* Type toggle */}
+              <div className="flex flex-col gap-[7px]">
+                <label className="text-[13px] font-semibold text-[#0F172A]">Type</label>
+                <div className="flex gap-1.5 bg-[#F4F6FA] p-[5px] rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setType('expense')}
+                    className={
+                      "flex-1 py-2.5 rounded-lg border-none cursor-pointer text-[13px] font-semibold transition-all " +
+                      (type === 'expense'
+                        ? "bg-white text-[#DC2440] shadow-[0_1px_3px_rgba(15,23,42,0.08)]"
+                        : "bg-transparent text-[#475569]")
+                    }
+                  >
+                    ↓ Expense
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setType('income')}
+                    className={
+                      "flex-1 py-2.5 rounded-lg border-none cursor-pointer text-[13px] font-semibold transition-all " +
+                      (type === 'income'
+                        ? "bg-white text-[#10B981] shadow-[0_1px_3px_rgba(15,23,42,0.08)]"
+                        : "bg-transparent text-[#475569]")
+                    }
+                  >
+                    ↑ Income
+                  </button>
+                </div>
+              </div>
+    
+              {/* Name */}
+              <div className="flex flex-col gap-[7px]">
+                <label htmlFor="tx-name" className="text-[13px] font-semibold text-[#0F172A]">
+                  {type === 'expense' ? 'Expense name' : 'Income name'}
+                </label>
+                <input
+                  id="tx-name"
+                  className={fieldClass(!!errors.title)}
+                  placeholder="e.g. Grocery run"
+                  value={title}
+                  onChange={(e) => {setTitle(e.target.value);
+                    if (e.target.value.trim()) setErrors(prev => ({ ...prev, title: undefined }));
+                  }}
+                  
+                />
+                 {errors.title && (
+              <p className="text-xs text-red-500">{errors.title}</p>
+            )}
+              </div>
+    
+              {/* Amount */}
+              <div className="flex flex-col gap-[7px]">
+                <label htmlFor="tx-amount" className="text-[13px] font-semibold text-[#0F172A]">Amount</label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[15px] font-bold text-[#94A3B8] pointer-events-none">$</span>
+                  <input
+                    id="tx-amount"
+                    inputMode="decimal"
+                    className={fieldClass(!!errors.amount) + " pl-[30px] font-bold tabular-nums"}
+                    placeholder="0.00"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
+                    
+                  />
+                   {errors.amount && (
+              <p className="text-xs text-red-500">{errors.amount}</p>
+            )}
+                </div>
+              </div>
+    
+              {/* Date */}
+              <div className="flex flex-col gap-[7px]">
+                <label htmlFor="tx-date" className="text-[13px] font-semibold text-[#0F172A]">Date</label>
+                <input
+                  id="tx-date"
+                  type="date"
+                  className={inputBase + " appearance-none"}
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  required
+                />
+              </div>
+    
+              {/* Category chips */}
+    
+              {type === 'expense' &&  
+              <div className="flex flex-col gap-[7px]">
+                <label className="text-[13px] font-semibold text-[#0F172A]">Category</label>
+                <div className="flex flex-wrap gap-2">
+                  {CATEGORIES.map((c) => {
+                    const active = category === c.id;
+                    return (
+                      <button
+                        type="button"
+                        key={c.id}
+                        onClick={() => setCategory(c.id)}
+                        className={
+                          "inline-flex items-center gap-[7px] px-3.5 py-2 rounded-full text-[13px] font-semibold cursor-pointer border transition-all " +
+                          (active
+                            ? "bg-[#EDEBFD] border-[#5B4FE9] text-[#4A3FD0]"
+                            : "bg-white border-[#E5E7EB] text-[#475569] hover:border-[#CBD5E1] hover:bg-[#F4F6FA]")
+                        }
+                      >
+                        <span className="w-2 h-2 rounded-full" style={{ background: c.color }} />
+                        {c.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              }
+            </form>
+    
+            {/* Footer */}
+            <div className="px-7 py-5 border-t border-[#E5E7EB] flex gap-3">
+              <button
+                type="button"
+                onClick={onCancel}
+                className="px-[18px] py-3 rounded-xl border-none cursor-pointer text-sm font-bold text-[#0F172A]
+                           bg-white shadow-[inset_0_0_0_1px_#E5E7EB] hover:bg-[#F4F6FA] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                form="edit-tx-form"
+                disabled={submitting}
+                className="flex-1 px-[18px] py-3 rounded-xl border-none cursor-pointer text-sm font-bold text-white
+                           bg-[linear-gradient(135deg,#6E5DEF_0%,#4577ED_55%,#1FAEEC_100%)]
+                           shadow-[0_6px_16px_rgba(91,79,233,0.28)]
+                           transition-all duration-100 ease-out
+                           hover:-translate-y-px hover:shadow-[0_10px_22px_rgba(91,79,233,0.36)]
+                           active:translate-y-0
+                           disabled:opacity-60 disabled:cursor-not-allowed disabled:translate-y-0"
+              >
+                {submitting ? 'Saving…' : `Save ${type === 'expense' ? 'expense' : 'income'}`}
+              </button>
+            </div>
+          </aside>
         </div>
-      </div>
-    </div>,
-    document.body
-  );
+  )
 }

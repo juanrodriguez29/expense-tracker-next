@@ -15,35 +15,28 @@ export default async function handler(req, res) {
   )
 
   const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-  if (!user) return res.status(401).json({ authError: 'Unauthorized' })
+  if (!user) return res.status(401).json({ error: 'Unauthorized' })
 
-  const { id } = req.query
-
-
-  if (req.method === 'PUT') {
-    const { title, amount, date, category, type } = req.body
+  if (req.method === 'GET') {
     const { data, error } = await supabase
-      .from('expenses')
-      .update({ title, amount, date, category, type })
-      .eq('id', id)
+      .from('budgets')
+      .select('*')
       .eq('user_id', user.id)
+    if (error) return res.status(500).json({ error: error.message })
+    return res.status(200).json(data)
+  }
+
+  if (req.method === 'POST') {
+    console.log(req.body);
+    const { category, amount } = req.body
+    console.log("user.id", user.id);
+    const { data, error } = await supabase
+      .from('budgets')
+      .insert({ category, amount, user_id: user.id })
       .select()
     if (error) return res.status(500).json({ error: error.message })
-    return res.status(200).json(data[0])
-  }
-
-  if (req.method === 'DELETE') {
-    const { error } = await supabase
-      .from('expenses')
-      .delete()
-      .eq('id', id)
-      .eq('user_id', user.id)
-    if (error) return res.status(500).json({ error: error.message })
-    return res.status(204).end()
-
-  }
+    return res.status(201).json(data[0]) 
+   }
 
   res.status(405).json({ error: 'Method not allowed' })
-
 }
-

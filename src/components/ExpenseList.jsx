@@ -1,6 +1,7 @@
 import { ExpenseItem } from "./ExpenseItem";
 
-export function ExpenseList({ expenses, onDelete, onEdit, categoryMap, onCategoryClick, expensesToShow, activeCategory }) {
+
+export function ExpenseList({ expenses, deleteExpense, setEditingExpense, setActiveCategory, expensesToShow, activeCategory }) {
   return (
     <ul className="expense-list">
       
@@ -8,10 +9,9 @@ export function ExpenseList({ expenses, onDelete, onEdit, categoryMap, onCategor
         <ExpenseItem
           key={expense.id}
           expense={expense}
-          onDelete={onDelete}
-          onEdit={onEdit}
-          categoryMap={categoryMap}
-          onCategoryClick={onCategoryClick}
+          deleteExpense={deleteExpense}
+          setEditingExpense={setEditingExpense}
+          setActiveCategory={setActiveCategory}
         />))}
     </ul>
   );

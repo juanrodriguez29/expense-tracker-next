@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@supabase/supabase-js';
 
 export default async function handler(req, res) {
 
@@ -19,23 +19,37 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     const { data, error } = await supabase
-      .from('expenses')
+      .from('profiles')
       .select('*')
-      .eq('user_id', user.id)
-      .order('date', { ascending: false })
+      .eq('id', user.id)
+      .single()
     if (error) return res.status(500).json({ error: error.message })
     return res.status(200).json(data)
   }
 
   if (req.method === 'POST') {
-    const { title, amount, date, category, type } = req.body
+    const { display_name, email, last_name, phone_number } = req.body
     const { data, error } = await supabase
-      .from('expenses')
-      .insert({ title, amount, date, category, type, user_id: user.id })
+      .from('profiles')
+      .insert({ display_name, email, last_name, phone_number, id: user.id })
       .select()
+
     if (error) return res.status(500).json({ error: error.message })
     return res.status(201).json(data[0])
   }
 
   res.status(405).json({ error: 'Method not allowed' })
+
+  if (req.method === 'PUT') {
+    const { display_name, email, last_name, phone_number } = req.body
+    const { data, error } = await supabase
+      .from('profiles')
+      .update({ display_name, email, last_name, phone_number })
+      .eq('id', user.id)
+      .select()
+    if (error) return res.status(500).json({ error: error.message })
+    return res.status(200).json(data[0])
+  }
+
+
 }
