@@ -6,7 +6,7 @@ import { Dashboard } from '../components/Dashboard';
 import { Transactions } from '../components/Transactions';
 import { Budgets } from '../components/Budgets';
 import { SettingsPage } from '../components/SettingsPage';
-import { Chat } from '../components/chat';
+import { Chat } from '../components/Chat';
 import { CATEGORIES, CATEGORY_MAP } from '../lib/categories';
 
 const GRAD = 'linear-gradient(135deg,#6E5DEF 0%,#4577ED 55%,#1FAEEC 100%)';
