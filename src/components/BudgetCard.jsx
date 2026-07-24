@@ -1,5 +1,5 @@
-import { IconDisc } from './icondisc';
-import { XIcon } from './xicon';
+import { IconDisc } from './Icondisc';
+import { XIcon } from './Xicon';
 import { money } from '../lib/utils';
 
 export function BudgetCard({ category, budget, spent, onSetBudget, onEdit, onDelete }) {

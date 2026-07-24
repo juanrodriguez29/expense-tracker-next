@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { XIcon } from './xicon';
+import { XIcon } from './Xicon';
 import { BudgetCard } from './BudgetCard'
 import { money } from '../lib/utils';
 

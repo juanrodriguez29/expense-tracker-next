@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { CATEGORIES, CATEGORY_MAP } from "../lib/categories";
-import { XIcon } from './xicon'
+import { XIcon } from './Xicon'
 
 function TrashIcon() {
   return (

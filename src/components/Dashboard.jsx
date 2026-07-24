@@ -1,6 +1,6 @@
 import { CategoryPieChart } from './CategoryPieChart'
 import { CATEGORIES } from '../lib/categories'
-import { IconDisc } from './icondisc';
+import { IconDisc } from './Icondisc';
 
 
 
